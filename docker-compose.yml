@@ -13,6 +13,8 @@ services:
       watch:
         - path: src
           action: rebuild
+        - path: Cargo.lock
+          action: rebuild
     healthcheck:
       test: httpie localhost:9336/healthz || exit 1
       timeout: 2s
