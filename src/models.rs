@@ -4,7 +4,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, FromRow)]
-pub struct Offer {
+struct Offer {
     id: Uuid,
     title: String,
     price: i64,
@@ -18,18 +18,18 @@ pub struct Activity {
     offers: sqlx::types::Json<Vec<Offer>>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, FromRow)]
 struct Picture {
     description: String,
     src: String,
 }
 
-#[derive(Serialize)]
-struct Destination {
+#[derive(Serialize, FromRow)]
+pub struct Destination {
     id: Uuid,
     name: String,
     description: String,
-    pictures: Vec<Picture>,
+    pictures: sqlx::types::Json<Vec<Picture>>,
 }
 
 #[derive(Deserialize)]
@@ -43,14 +43,14 @@ struct EventCreate {
     is_favorite: bool,
 }
 
-#[derive(Serialize)]
-struct Event {
+#[derive(Serialize, FromRow)]
+pub struct Event {
     id: Uuid,
     kind: String,
     destination: Uuid,
     date_from: OffsetDateTime,
     date_to: OffsetDateTime,
-    offers: Vec<Uuid>,
+    offers: sqlx::types::Json<Vec<Uuid>>,
     base_price: i64,
     is_favorite: bool,
 }

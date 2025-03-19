@@ -22,7 +22,11 @@ async fn healthz() -> &'static str {
     "OK"
 }
 
-// async fn get_events() -> Result<impl Responder> {}
+async fn get_events(state: web::Data<AppState>) -> Result<impl Responder> {
+    let events = crud::get_events(&state.db).await;
+
+    Ok(web::Json(events))
+}
 
 // async fn create_event() -> Result<impl Responder> {}
 
@@ -30,7 +34,11 @@ async fn healthz() -> &'static str {
 
 // async fn delete_event() -> Result<impl Responder> {}
 
-// async fn get_destinations() -> Result<impl Responder> {}
+async fn get_destinations(state: web::Data<AppState>) -> Result<impl Responder> {
+    let destinations = crud::get_destinations(&state.db).await;
+
+    Ok(web::Json(destinations))
+}
 
 // async fn sync_events() -> Result<impl Responder> {}
 
@@ -56,11 +64,11 @@ async fn main() -> Result<()> {
             .app_data(web::Data::new(AppState { db: pool.clone() }))
             .route("/healthz", web::get().to(healthz))
             .route("/activities", web::get().to(get_activities))
-        // .route("/points", web::get().to(get_events))
-        // .route("/points/{event_id}", web::post().to(create_event))
-        // .route("/points/{event_id}", web::put().to(update_event))
-        // .route("/points/{event_id}", web::delete().to(delete_event))
-        // .route("/destinations", web::get().to(get_destinations))
+            .route("/events", web::get().to(get_events))
+            // .route("/points/{event_id}", web::post().to(create_event))
+            // .route("/points/{event_id}", web::put().to(update_event))
+            // .route("/points/{event_id}", web::delete().to(delete_event))
+            .route("/destinations", web::get().to(get_destinations))
         // .route("/points/sync", web::post().to(sync_events))
     })
     .workers(1)
