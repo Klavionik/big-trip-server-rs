@@ -6,12 +6,15 @@ services:
         required: false
     ports:
      - "9336:9336"
+    depends_on:
+      db:
+        condition: service_healthy
     develop:
       watch:
         - path: src
           action: rebuild
     healthcheck:
-      test: curl localhost:9336/healthz || exit 1
+      test: httpie localhost:9336/healthz || exit 1
       timeout: 2s
       interval: 3s
 
