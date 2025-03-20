@@ -33,26 +33,32 @@ pub struct Destination {
 }
 
 #[derive(Deserialize)]
-struct EventCreate {
-    kind: String,
-    destination: Uuid,
-    date_from: OffsetDateTime,
-    date_to: OffsetDateTime,
-    offers: Vec<Uuid>,
-    base_price: i64,
-    is_favorite: bool,
+pub struct EventCreate {
+    pub kind: String,
+    pub destination: Uuid,
+    #[serde(with = "time::serde::rfc3339")]
+    pub date_from: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub date_to: OffsetDateTime,
+    pub offers: Vec<Uuid>,
+    pub base_price: i64,
+    pub is_favorite: bool,
 }
 
 #[derive(Serialize, FromRow)]
 pub struct Event {
-    id: Uuid,
-    kind: String,
-    destination: Uuid,
-    date_from: OffsetDateTime,
-    date_to: OffsetDateTime,
-    offers: sqlx::types::Json<Vec<Uuid>>,
-    base_price: i64,
-    is_favorite: bool,
+    pub id: Uuid,
+    #[sqlx(rename = "type")]
+    #[serde(rename(serialize = "type"))]
+    pub kind: String,
+    pub destination: Uuid,
+    #[serde(with = "time::serde::rfc3339")]
+    pub date_from: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub date_to: OffsetDateTime,
+    pub offers: sqlx::types::Json<Vec<Uuid>>,
+    pub base_price: i64,
+    pub is_favorite: bool,
 }
 
 #[derive(Serialize)]
