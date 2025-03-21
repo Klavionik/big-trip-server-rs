@@ -4,4 +4,5 @@ use serde::Deserialize;
 pub struct Settings {
     pub database_url: String,
     pub allowed_origin: String,
+    pub sentry_dsn: String,
 }
