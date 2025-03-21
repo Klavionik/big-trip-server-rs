@@ -43,17 +43,17 @@ async fn main() -> Result<()> {
         App::new()
             .wrap(cors)
             .app_data(web::Data::new(handlers::AppState { db: pool.clone() }))
+            .service(
+                web::scope("/events")
+                    .route("", web::get().to(handlers::get_events))
+                    .route("", web::post().to(handlers::create_event))
+                    .route("/{event_id}", web::put().to(handlers::update_event))
+                    .route("/{event_id}", web::delete().to(handlers::delete_event))
+                    .route("/sync", web::post().to(handlers::sync_events)),
+            )
             .route("/healthz", web::get().to(handlers::healthz))
             .route("/activities", web::get().to(handlers::get_activities))
-            .route("/events", web::get().to(handlers::get_events))
-            .route("/events", web::post().to(handlers::create_event))
-            .route("/events/{event_id}", web::put().to(handlers::update_event))
-            .route(
-                "/events/{event_id}",
-                web::delete().to(handlers::delete_event),
-            )
             .route("/destinations", web::get().to(handlers::get_destinations))
-            .route("/events/sync", web::post().to(handlers::sync_events))
     })
     .workers(1)
     .bind(("0.0.0.0", 9336))?
