@@ -4,7 +4,8 @@ mod settings;
 
 use crate::models::{Event, EventCreate};
 use crate::settings::Settings;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_cors::Cors;
+use actix_web::{http, web, App, HttpResponse, HttpServer, Responder};
 use config::{Config, Environment};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::io::Result;
@@ -82,6 +83,8 @@ async fn main() -> Result<()> {
     let config = Config::builder()
         .set_default("database_url", "postgres://user:password@db:5432/bigtrip")
         .unwrap()
+        .set_default("allowed_origin", "http://localhost:8080")
+        .unwrap()
         .add_source(Environment::default())
         .build()
         .unwrap();
@@ -95,7 +98,18 @@ async fn main() -> Result<()> {
     sqlx::migrate!().run(&pool).await.unwrap();
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin(&settings.allowed_origin)
+            .allowed_methods(vec![
+                http::Method::GET,
+                http::Method::POST,
+                http::Method::PUT,
+                http::Method::DELETE,
+            ])
+            .allowed_header(http::header::CONTENT_TYPE);
+
         App::new()
+            .wrap(cors)
             .app_data(web::Data::new(AppState { db: pool.clone() }))
             .route("/healthz", web::get().to(healthz))
             .route("/activities", web::get().to(get_activities))
