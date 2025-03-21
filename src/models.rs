@@ -45,7 +45,7 @@ pub struct EventCreate {
     pub is_favorite: bool,
 }
 
-#[derive(Serialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow)]
 pub struct Event {
     pub id: Uuid,
     #[sqlx(rename = "type")]

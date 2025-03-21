@@ -52,3 +52,28 @@ pub async fn create_event(event: EventCreate, pool: &PgPool) -> Event {
         is_favorite: event.is_favorite,
     }
 }
+
+pub async fn update_event(event_id: Uuid, event: Event, pool: &PgPool) -> Event {
+    sqlx::query("UPDATE events SET type = $2, destination = $3, date_from = $4, date_to = $5, offers = $6::jsonb, base_price = $7, is_favorite = $8 WHERE id = $1")
+        .bind(event_id)
+        .bind(&event.kind)
+        .bind(event.destination)
+        .bind(event.date_from)
+        .bind(event.date_to)
+        .bind(serde_json::to_string(&event.offers).unwrap())
+        .bind(event.base_price)
+        .bind(event.is_favorite)
+        .execute(pool)
+        .await
+        .unwrap();
+
+    event
+}
+
+pub async fn delete_event(event_id: Uuid, pool: &PgPool) {
+    sqlx::query("DELETE FROM events WHERE id = $1")
+        .bind(event_id)
+        .execute(pool)
+        .await
+        .unwrap();
+}
