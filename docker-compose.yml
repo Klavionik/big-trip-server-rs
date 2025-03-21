@@ -16,9 +16,11 @@ services:
         - path: Cargo.lock
           action: rebuild
     healthcheck:
-      test: httpie localhost:9336/healthz || exit 1
+      test: httpie --check-status -q GET :9336/healthz || exit 1
       timeout: 2s
-      interval: 3s
+      interval: 30s
+      start_period: 5s
+      start_interval: 1s
 
   db:
     image: postgres:16.5-alpine
