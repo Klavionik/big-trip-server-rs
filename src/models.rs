@@ -34,6 +34,7 @@ pub struct Destination {
 
 #[derive(Deserialize)]
 pub struct EventCreate {
+    #[serde(rename = "type")]
     pub kind: String,
     pub destination: Uuid,
     #[serde(with = "time::serde::rfc3339")]
@@ -49,7 +50,7 @@ pub struct EventCreate {
 pub struct Event {
     pub id: Uuid,
     #[sqlx(rename = "type")]
-    #[serde(rename(serialize = "type"))]
+    #[serde(rename = "type")]
     pub kind: String,
     pub destination: Uuid,
     #[serde(with = "time::serde::rfc3339")]
