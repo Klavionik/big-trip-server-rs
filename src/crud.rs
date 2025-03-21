@@ -1,4 +1,4 @@
-use crate::models::{Activity, Destination, Event, EventCreate};
+use crate::models::{Activity, Destination, Event, EventCreate, SyncResult};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -76,4 +76,15 @@ pub async fn delete_event(event_id: Uuid, pool: &PgPool) {
         .execute(pool)
         .await
         .unwrap();
+}
+
+pub async fn sync_events(events: Vec<Event>, pool: &PgPool) -> SyncResult {
+    let mut updated = vec![];
+
+    for event in events {
+        let event = update_event(event.id, event, pool).await;
+        updated.push(event)
+    }
+
+    SyncResult { updated }
 }

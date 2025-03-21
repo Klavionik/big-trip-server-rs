@@ -62,6 +62,6 @@ pub struct Event {
 }
 
 #[derive(Serialize)]
-struct SyncResult {
-    updated: Vec<Event>,
+pub struct SyncResult {
+    pub updated: Vec<Event>,
 }

@@ -67,7 +67,15 @@ async fn get_destinations(state: web::Data<AppState>) -> Result<impl Responder> 
     Ok(web::Json(destinations))
 }
 
-// async fn sync_events() -> Result<impl Responder> {}
+async fn sync_events(
+    events: web::Json<Vec<Event>>,
+    state: web::Data<AppState>,
+) -> Result<impl Responder> {
+    let events = events.into_inner();
+    let result = crud::sync_events(events, &state.db).await;
+
+    Ok(web::Json(result))
+}
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -96,7 +104,7 @@ async fn main() -> Result<()> {
             .route("/events/{event_id}", web::put().to(update_event))
             .route("/events/{event_id}", web::delete().to(delete_event))
             .route("/destinations", web::get().to(get_destinations))
-        // .route("/points/sync", web::post().to(sync_events))
+            .route("/events/sync", web::post().to(sync_events))
     })
     .workers(1)
     .bind(("0.0.0.0", 9336))?
