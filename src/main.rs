@@ -12,7 +12,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::io::Result;
 
 fn main() -> Result<()> {
-    env_logger::init_from_env(Env::default().default_filter_or("debug"));
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     let config = Config::builder()
         .set_default("database_url", "postgres://user:password@db:5432/bigtrip")
@@ -38,7 +38,7 @@ fn main() -> Result<()> {
         .enable_all()
         .build()?;
 
-    runtime.block_on(async move {
+    runtime.block_on(async {
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(&settings.database_url)
@@ -62,7 +62,7 @@ fn main() -> Result<()> {
                 .wrap(Logger::default())
                 .wrap(sentry_actix::Sentry::new())
                 .wrap(cors)
-                .app_data(web::Data::new(handlers::AppState { db: pool.clone() }))
+                .app_data(web::Data::new(pool.clone()))
                 .service(
                     web::scope("/events")
                         .route("", web::get().to(handlers::get_events))
