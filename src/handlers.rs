@@ -26,7 +26,7 @@ pub async fn create_event(
 ) -> std::io::Result<impl Responder> {
     let new_event = crud::create_event(event.into_inner(), &db).await;
 
-    Ok(web::Json(new_event))
+    Ok(HttpResponse::Created().json(new_event))
 }
 
 pub async fn update_event(
