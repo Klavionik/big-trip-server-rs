@@ -1,6 +1,15 @@
 use crate::models::{Activity, Destination, Event, EventCreate, SyncResult};
 use sqlx::PgPool;
+use thiserror::Error;
 use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum CRUDError {
+    #[error("Operation failed.")]
+    UnknownError,
+    #[error("Destination with ID {0} doesn't exist.")]
+    IncorrectDestination(Uuid),
+}
 
 pub async fn get_activities(pool: &PgPool) -> Vec<Activity> {
     sqlx::query_as("SELECT * FROM activities;")
@@ -23,8 +32,8 @@ pub async fn get_destinations(pool: &PgPool) -> Vec<Destination> {
         .unwrap()
 }
 
-pub async fn create_event(event: EventCreate, pool: &PgPool) -> Event {
-    let new_id: Uuid = sqlx::query_scalar(
+pub async fn create_event(event: EventCreate, pool: &PgPool) -> Result<Event, CRUDError> {
+    match sqlx::query_scalar(
         "INSERT INTO events (type, destination, date_from, date_to, offers, base_price, is_favorite)
             VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)
             RETURNING id
@@ -38,18 +47,31 @@ pub async fn create_event(event: EventCreate, pool: &PgPool) -> Event {
         .bind(event.base_price)
         .bind(event.is_favorite)
         .fetch_one(pool)
-        .await
-        .unwrap();
-
-    Event {
-        id: new_id,
-        kind: event.kind,
-        destination: event.destination,
-        date_from: event.date_from,
-        date_to: event.date_to,
-        offers: sqlx::types::Json(event.offers),
-        base_price: event.base_price,
-        is_favorite: event.is_favorite,
+        .await {
+        Ok(new_id) => {
+            Ok(Event {
+                id: new_id,
+                kind: event.kind,
+                destination: event.destination,
+                date_from: event.date_from,
+                date_to: event.date_to,
+                offers: sqlx::types::Json(event.offers),
+                base_price: event.base_price,
+                is_favorite: event.is_favorite,
+            })
+        },
+        Err(err) => {
+            match err.as_database_error() {
+                Some(db_error) => {
+                    if db_error.is_foreign_key_violation() {
+                        Err(CRUDError::IncorrectDestination(event.destination))
+                    } else {
+                        Err(CRUDError::UnknownError)
+                    }
+                },
+                None => Err(CRUDError::UnknownError)
+            }
+        }
     }
 }
 

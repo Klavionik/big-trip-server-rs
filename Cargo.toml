@@ -16,3 +16,5 @@ sqlx = { version = "0.8.3", features = ["derive", "json", "migrate", "postgres",
 time = { version = "0.3.40", features = ["serde-well-known"] }
 uuid = { version = "1.16.0", features = ["serde", "v4"] }
 tokio = { version = "1.44.1", features = ["rt-multi-thread"] }
+error = "0.1.9"
+thiserror = "2.0.12"

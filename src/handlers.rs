@@ -1,8 +1,31 @@
 use crate::crud;
 use crate::models::{Event, EventCreate};
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::body::BoxBody;
+use actix_web::http::StatusCode;
+use actix_web::{web, HttpResponse, Responder, ResponseError};
+use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+#[derive(Serialize)]
+struct APIError {
+    detail: String,
+}
+
+impl ResponseError for crud::CRUDError {
+    fn status_code(&self) -> StatusCode {
+        match *self {
+            crud::CRUDError::UnknownError => StatusCode::INTERNAL_SERVER_ERROR,
+            crud::CRUDError::IncorrectDestination(_) => StatusCode::BAD_REQUEST,
+        }
+    }
+
+    fn error_response(&self) -> HttpResponse<BoxBody> {
+        HttpResponse::build(self.status_code()).json(APIError {
+            detail: self.to_string(),
+        })
+    }
+}
 
 pub async fn healthz() -> &'static str {
     "OK"
@@ -23,8 +46,8 @@ pub async fn get_events(db: web::Data<PgPool>) -> std::io::Result<impl Responder
 pub async fn create_event(
     event: web::Json<EventCreate>,
     db: web::Data<PgPool>,
-) -> std::io::Result<impl Responder> {
-    let new_event = crud::create_event(event.into_inner(), &db).await;
+) -> actix_web::Result<impl Responder> {
+    let new_event = crud::create_event(event.into_inner(), &db).await?;
 
     Ok(HttpResponse::Created().json(new_event))
 }
