@@ -1,9 +1,8 @@
 use crate::models::{Activity, Destination, Event, EventCreate, SyncResult};
 use sqlx::PgPool;
-use thiserror::Error;
 use uuid::Uuid;
 
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum CRUDError {
     #[error("Operation failed.")]
     UnknownError,
@@ -33,7 +32,7 @@ pub async fn get_destinations(pool: &PgPool) -> Vec<Destination> {
 }
 
 pub async fn create_event(event: EventCreate, pool: &PgPool) -> Result<Event, CRUDError> {
-    match sqlx::query_scalar(
+    let query = sqlx::query_scalar(
         "INSERT INTO events (type, destination, date_from, date_to, offers, base_price, is_favorite)
             VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)
             RETURNING id
@@ -45,34 +44,28 @@ pub async fn create_event(event: EventCreate, pool: &PgPool) -> Result<Event, CR
         .bind(event.date_to)
         .bind(serde_json::to_string(&event.offers).unwrap())
         .bind(event.base_price)
-        .bind(event.is_favorite)
+        .bind(event.is_favorite);
+
+    let new_id = query
         .fetch_one(pool)
-        .await {
-        Ok(new_id) => {
-            Ok(Event {
-                id: new_id,
-                kind: event.kind,
-                destination: event.destination,
-                date_from: event.date_from,
-                date_to: event.date_to,
-                offers: sqlx::types::Json(event.offers),
-                base_price: event.base_price,
-                is_favorite: event.is_favorite,
-            })
-        },
-        Err(err) => {
-            match err.as_database_error() {
-                Some(db_error) => {
-                    if db_error.is_foreign_key_violation() {
-                        Err(CRUDError::IncorrectDestination(event.destination))
-                    } else {
-                        Err(CRUDError::UnknownError)
-                    }
-                },
-                None => Err(CRUDError::UnknownError)
+        .await
+        .map_err(|error| match error.as_database_error() {
+            Some(db_error) if db_error.is_foreign_key_violation() => {
+                CRUDError::IncorrectDestination(event.destination)
             }
-        }
-    }
+            _ => CRUDError::UnknownError,
+        })?;
+
+    Ok(Event {
+        id: new_id,
+        kind: event.kind,
+        destination: event.destination,
+        date_from: event.date_from,
+        date_to: event.date_to,
+        offers: sqlx::types::Json(event.offers),
+        base_price: event.base_price,
+        is_favorite: event.is_favorite,
+    })
 }
 
 pub async fn update_event(event_id: Uuid, event: Event, pool: &PgPool) -> Event {
