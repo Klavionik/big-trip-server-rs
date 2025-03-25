@@ -1,4 +1,5 @@
 ARG RUST_VERSION=1.85.0
+ARG BUILD_ARGS
 FROM rust:${RUST_VERSION}-slim-bullseye AS build
 WORKDIR /app
 
@@ -8,7 +9,7 @@ RUN --mount=type=bind,source=src,target=src \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     --mount=type=bind,source=migrations,target=migrations \
-    cargo build --locked --release && \
+    cargo build --locked ${BUILD_ARGS} && \
     cp ./target/release/big-trip-server-rs /bin/big-trip
 
 
