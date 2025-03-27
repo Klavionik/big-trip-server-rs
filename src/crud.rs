@@ -1,5 +1,5 @@
 use crate::models::{Activity, Destination, Event, EventCreate, SyncResult};
-use sqlx::PgPool;
+use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
 #[derive(Debug, thiserror::Error)]
@@ -46,15 +46,15 @@ pub async fn create_event(event: EventCreate, pool: &PgPool) -> Result<Event, CR
         .bind(event.base_price)
         .bind(event.is_favorite);
 
-    let new_id = query
-        .fetch_one(pool)
-        .await
-        .map_err(|error| match error.as_database_error() {
-            Some(db_error) if db_error.is_foreign_key_violation() => {
-                CRUDError::IncorrectDestination(event.destination)
+    let new_id = query.fetch_one(pool).await.map_err(|sqlx_error| {
+        if let Some(db_error) = sqlx_error.as_database_error() {
+            if db_error.is_foreign_key_violation() {
+                return CRUDError::IncorrectDestination(event.destination);
             }
-            _ => CRUDError::UnknownError,
-        })?;
+        }
+
+        CRUDError::UnknownError
+    })?;
 
     Ok(Event {
         id: new_id,
