@@ -1,34 +1,37 @@
 use crate::models::{Activity, Destination, Event, EventCreate, SyncResult};
-use sqlx::{Error, PgPool};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CRUDError {
     #[error("Operation failed.")]
-    UnknownError,
+    UnknownError(#[from] sqlx::Error),
     #[error("Destination with ID {0} doesn't exist.")]
     IncorrectDestination(Uuid),
 }
 
-pub async fn get_activities(pool: &PgPool) -> Vec<Activity> {
-    sqlx::query_as("SELECT * FROM activities;")
+pub async fn get_activities(pool: &PgPool) -> Result<Vec<Activity>, CRUDError> {
+    let activities: Vec<Activity> = sqlx::query_as("SELECT * FROM activities;")
         .fetch_all(pool)
-        .await
-        .unwrap()
+        .await?;
+
+    Ok(activities)
 }
 
-pub async fn get_events(pool: &PgPool) -> Vec<Event> {
-    sqlx::query_as("SELECT * FROM events;")
+pub async fn get_events(pool: &PgPool) -> Result<Vec<Event>, CRUDError> {
+    let events: Vec<Event> = sqlx::query_as("SELECT * FROM events;")
         .fetch_all(pool)
-        .await
-        .unwrap()
+        .await?;
+
+    Ok(events)
 }
 
-pub async fn get_destinations(pool: &PgPool) -> Vec<Destination> {
-    sqlx::query_as("SELECT * FROM destinations;")
+pub async fn get_destinations(pool: &PgPool) -> Result<Vec<Destination>, CRUDError> {
+    let destinations = sqlx::query_as("SELECT * FROM destinations;")
         .fetch_all(pool)
-        .await
-        .unwrap()
+        .await?;
+
+    Ok(destinations)
 }
 
 pub async fn create_event(event: EventCreate, pool: &PgPool) -> Result<Event, CRUDError> {
@@ -53,7 +56,7 @@ pub async fn create_event(event: EventCreate, pool: &PgPool) -> Result<Event, CR
             }
         }
 
-        CRUDError::UnknownError
+        CRUDError::UnknownError(sqlx_error)
     })?;
 
     Ok(Event {
@@ -68,7 +71,7 @@ pub async fn create_event(event: EventCreate, pool: &PgPool) -> Result<Event, CR
     })
 }
 
-pub async fn update_event(event_id: Uuid, event: Event, pool: &PgPool) -> Event {
+pub async fn update_event(event_id: Uuid, event: Event, pool: &PgPool) -> Result<Event, CRUDError> {
     sqlx::query("UPDATE events SET type = $2, destination = $3, date_from = $4, date_to = $5, offers = $6::jsonb, base_price = $7, is_favorite = $8 WHERE id = $1")
         .bind(event_id)
         .bind(&event.kind)
@@ -79,27 +82,27 @@ pub async fn update_event(event_id: Uuid, event: Event, pool: &PgPool) -> Event 
         .bind(event.base_price)
         .bind(event.is_favorite)
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
-    event
+    Ok(event)
 }
 
-pub async fn delete_event(event_id: Uuid, pool: &PgPool) {
-    sqlx::query("DELETE FROM events WHERE id = $1")
+pub async fn delete_event(event_id: Uuid, pool: &PgPool) -> Result<(), CRUDError> {
+    let _ = sqlx::query("DELETE FROM events WHERE id = $1")
         .bind(event_id)
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
 }
 
-pub async fn sync_events(events: Vec<Event>, pool: &PgPool) -> SyncResult {
+pub async fn sync_events(events: Vec<Event>, pool: &PgPool) -> Result<SyncResult, CRUDError> {
     let mut updated = vec![];
 
     for event in events {
-        let event = update_event(event.id, event, pool).await;
+        let event = update_event(event.id, event, pool).await?;
         updated.push(event)
     }
 
-    SyncResult { updated }
+    Ok(SyncResult { updated })
 }

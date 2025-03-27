@@ -15,7 +15,7 @@ struct APIError {
 impl ResponseError for crud::CRUDError {
     fn status_code(&self) -> StatusCode {
         match *self {
-            crud::CRUDError::UnknownError => StatusCode::INTERNAL_SERVER_ERROR,
+            crud::CRUDError::UnknownError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             crud::CRUDError::IncorrectDestination(_) => StatusCode::BAD_REQUEST,
         }
     }
@@ -31,14 +31,14 @@ pub async fn healthz() -> &'static str {
     "OK"
 }
 
-pub async fn get_activities(db: web::Data<PgPool>) -> std::io::Result<impl Responder> {
-    let activities = crud::get_activities(&db).await;
+pub async fn get_activities(db: web::Data<PgPool>) -> actix_web::Result<impl Responder> {
+    let activities = crud::get_activities(&db).await?;
 
     Ok(web::Json(activities))
 }
 
-pub async fn get_events(db: web::Data<PgPool>) -> std::io::Result<impl Responder> {
-    let events = crud::get_events(&db).await;
+pub async fn get_events(db: web::Data<PgPool>) -> actix_web::Result<impl Responder> {
+    let events = crud::get_events(&db).await?;
 
     Ok(web::Json(events))
 }
@@ -56,10 +56,10 @@ pub async fn update_event(
     event_id: web::Path<(Uuid,)>,
     event: web::Json<Event>,
     db: web::Data<PgPool>,
-) -> std::io::Result<impl Responder> {
+) -> actix_web::Result<impl Responder> {
     let event_id = event_id.into_inner().0;
     let event = event.into_inner();
-    let event = crud::update_event(event_id, event, &db).await;
+    let event = crud::update_event(event_id, event, &db).await?;
 
     Ok(web::Json(event))
 }
@@ -67,15 +67,15 @@ pub async fn update_event(
 pub async fn delete_event(
     event_id: web::Path<(Uuid,)>,
     db: web::Data<PgPool>,
-) -> std::io::Result<impl Responder> {
+) -> actix_web::Result<impl Responder> {
     let event_id = event_id.into_inner().0;
-    crud::delete_event(event_id, &db).await;
+    crud::delete_event(event_id, &db).await?;
 
     Ok(HttpResponse::NoContent())
 }
 
-pub async fn get_destinations(db: web::Data<PgPool>) -> std::io::Result<impl Responder> {
-    let destinations = crud::get_destinations(&db).await;
+pub async fn get_destinations(db: web::Data<PgPool>) -> actix_web::Result<impl Responder> {
+    let destinations = crud::get_destinations(&db).await?;
 
     Ok(web::Json(destinations))
 }
@@ -83,9 +83,9 @@ pub async fn get_destinations(db: web::Data<PgPool>) -> std::io::Result<impl Res
 pub async fn sync_events(
     events: web::Json<Vec<Event>>,
     db: web::Data<PgPool>,
-) -> std::io::Result<impl Responder> {
+) -> actix_web::Result<impl Responder> {
     let events = events.into_inner();
-    let result = crud::sync_events(events, &db).await;
+    let result = crud::sync_events(events, &db).await?;
 
     Ok(web::Json(result))
 }
