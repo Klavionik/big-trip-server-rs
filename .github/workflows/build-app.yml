@@ -12,7 +12,7 @@ env:
 jobs:
   build-backend:
     name: Build backend service
-    runs-on: [self-hosted, arm64]
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
